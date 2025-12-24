@@ -91,8 +91,8 @@ impl GcpVertexAIProvider {
     pub async fn from_env(model: ModelConfig) -> Result<Self> {
         let config = crate::config::Config::global();
         let project_id = config.get_param("GCP_PROJECT_ID")?;
-        let location = Self::determine_location(config)?;
-        let host = format!("https://{}-aiplatform.googleapis.com", location);
+        let location = Self::determine_location(config, &model.model_name)?;
+        let host = Self::host_for_location(&location);
 
         let client = Client::builder()
             .timeout(Duration::from_secs(DEFAULT_TIMEOUT_SECS))
@@ -150,17 +150,33 @@ impl GcpVertexAIProvider {
         )
     }
 
+    /// Returns the appropriate host URL for a given GCP location.
+    fn host_for_location(location: &str) -> String {
+        if location == "global" {
+            "https://aiplatform.googleapis.com".to_string()
+        } else {
+            format!("https://{}-aiplatform.googleapis.com", location)
+        }
+    }
+
     /// Determines the appropriate GCP location for model deployment.
     ///
     /// Location is determined in the following order:
     /// 1. Custom location from GCP_LOCATION environment variable
-    /// 2. Global default location (Iowa)
-    fn determine_location(config: &crate::config::Config) -> Result<String> {
-        Ok(config
-            .get_param("GCP_LOCATION")
-            .ok()
-            .filter(|location: &String| !location.trim().is_empty())
-            .unwrap_or_else(|| Iowa.to_string()))
+    /// 2. The model's default known location
+    /// 3. Fallback to a global default (Iowa)
+    fn determine_location(config: &crate::config::Config, model_name: &str) -> Result<String> {
+        if let Ok(location) = config.get_param::<String>("GCP_LOCATION") {
+            if !location.trim().is_empty() {
+                return Ok(location);
+            }
+        }
+
+        if let Ok(model) = GcpVertexAIModel::try_from(model_name) {
+            return Ok(model.known_location().to_string());
+        }
+
+        Ok(Iowa.to_string())
     }
 
     /// Retrieves an authentication token for API requests.
@@ -183,15 +199,10 @@ impl GcpVertexAIProvider {
         location: &str,
     ) -> Result<Url, GcpVertexAIError> {
         // Create host URL for the specified location
-        let host_url = if self.location == location {
-            &self.host
-        } else {
-            // Only allocate a new string if location differs
-            &self.host.replace(&self.location, location)
-        };
+        let host_url = Self::host_for_location(location);
 
         let base_url =
-            Url::parse(host_url).map_err(|e| GcpVertexAIError::InvalidUrl(e.to_string()))?;
+            Url::parse(&host_url).map_err(|e| GcpVertexAIError::InvalidUrl(e.to_string()))?;
 
         // Determine endpoint based on provider type
         let endpoint = match provider {
@@ -566,6 +577,22 @@ mod tests {
         // Check that max interval is respected
         let delay10 = config.delay_for_attempt(10);
         assert!(delay10.as_millis() <= 38400); // max_interval_ms * 1.2 (max jitter)
+    }
+
+    #[test]
+    fn test_host_for_location() {
+        assert_eq!(
+            GcpVertexAIProvider::host_for_location("global"),
+            "https://aiplatform.googleapis.com"
+        );
+        assert_eq!(
+            GcpVertexAIProvider::host_for_location("us-central1"),
+            "https://us-central1-aiplatform.googleapis.com"
+        );
+        assert_eq!(
+            GcpVertexAIProvider::host_for_location("us-east5"),
+            "https://us-east5-aiplatform.googleapis.com"
+        );
     }
 
     #[test]

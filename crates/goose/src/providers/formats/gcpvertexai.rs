@@ -17,6 +17,8 @@ pub enum GcpLocation {
     Iowa,
     /// Represents the us-east5 region in Ohio
     Ohio,
+    /// Represents the global region
+    Global,
 }
 
 impl fmt::Display for GcpLocation {
@@ -24,6 +26,7 @@ impl fmt::Display for GcpLocation {
         match self {
             Self::Iowa => write!(f, "us-central1"),
             Self::Ohio => write!(f, "us-east5"),
+            Self::Global => write!(f, "global"),
         }
     }
 }
@@ -35,6 +38,7 @@ impl TryFrom<&str> for GcpLocation {
         match s {
             "us-central1" => Ok(Self::Iowa),
             "us-east5" => Ok(Self::Ohio),
+            "global" => Ok(Self::Global),
             _ => Err(ModelError::UnsupportedLocation(s.to_string())),
         }
     }
@@ -140,13 +144,13 @@ impl GcpVertexAIModel {
     ///
     /// Each model family has a well-known location based on availability:
     /// - Claude models default to Ohio (us-east5)
-    /// - Gemini models default to Iowa (us-central1)
-    /// - MaaS models default to Iowa (us-central1)
+    /// - Gemini models default to Global
+    /// - MaaS models default to Global
     pub fn known_location(&self) -> GcpLocation {
         match self {
             Self::Claude(_) => GcpLocation::Ohio,
-            Self::Gemini(_) => GcpLocation::Iowa,
-            Self::MaaS(_, _) => GcpLocation::Iowa,
+            Self::Gemini(_) => GcpLocation::Global,
+            Self::MaaS(_, _) => GcpLocation::Global,
         }
     }
 }
@@ -401,12 +405,12 @@ mod tests {
             ("claude-sonnet-4-20250514", GcpLocation::Ohio),
             ("claude-3-7-sonnet@20250219", GcpLocation::Ohio),
             ("claude-sonnet-4@20250514", GcpLocation::Ohio),
-            ("gemini-1.5-pro-002", GcpLocation::Iowa),
-            ("gemini-2.0-flash-001", GcpLocation::Iowa),
-            ("gemini-2.0-pro-exp-02-05", GcpLocation::Iowa),
-            ("gemini-2.5-pro-exp-03-25", GcpLocation::Iowa),
-            ("gemini-2.5-flash-preview-05-20", GcpLocation::Iowa),
-            ("gemini-2.5-pro-preview-05-06", GcpLocation::Iowa),
+            ("gemini-1.5-pro-002", GcpLocation::Global),
+            ("gemini-2.0-flash-001", GcpLocation::Global),
+            ("gemini-2.0-pro-exp-02-05", GcpLocation::Global),
+            ("gemini-2.5-pro-exp-03-25", GcpLocation::Global),
+            ("gemini-2.5-flash-preview-05-20", GcpLocation::Global),
+            ("gemini-2.5-pro-preview-05-06", GcpLocation::Global),
         ];
 
         for (model_id, expected_location) in test_cases {
@@ -461,7 +465,7 @@ mod tests {
                 _ => panic!("Expected Gemini generic model for {model_id}"),
             }
             assert_eq!(model.to_string(), model_id);
-            assert_eq!(model.known_location(), GcpLocation::Iowa);
+            assert_eq!(model.known_location(), GcpLocation::Global);
         }
 
         Ok(())
