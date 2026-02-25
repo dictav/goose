@@ -391,7 +391,17 @@ fn get_input_prompt_string() -> String {
     if is_vte_with_broken_emoji_width() {
         return "> ".to_string();
     }
-    "🪿 ".to_string()
+
+    let goose = Config::global()
+        .get_goose_cli_prompt()
+        .map(|p| p.to_string())
+        .unwrap_or_else(|_| "🪿".to_string());
+
+    if cfg!(target_os = "windows") {
+        format!("{goose} ")
+    } else {
+        format!("{} ", console::style(goose))
+    }
 }
 
 /// VTE < 0.70 renders 🪿 as 1 cell while unicode-width counts 2, causing cursor offset.
@@ -760,6 +770,16 @@ mod tests {
 
         // Test /editfoo is not a valid command
         assert!(handle_slash_command("/editfoo").is_none());
+
+    #[test]
+    fn test_get_input_prompt_string() {
+        // Test custom prompt
+        std::env::set_var("GOOSE_CLI_PROMPT", ">>");
+        let prompt = get_input_prompt_string();
+        assert!(prompt.contains(">>"));
+        assert!(!prompt.contains('\"'));
+        assert!(prompt.ends_with(' '));
+        std::env::remove_var("GOOSE_CLI_PROMPT");
     }
 
     #[test]

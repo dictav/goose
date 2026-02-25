@@ -264,9 +264,8 @@ pub fn render_message(message: &Message, debug: bool) {
                 eprintln!("WARNING: Message content type could not be rendered");
             }
         }
+        let _ = std::io::stdout().flush();
     }
-
-    let _ = std::io::stdout().flush();
 }
 
 /// Render a streaming message, using a buffer to accumulate text content

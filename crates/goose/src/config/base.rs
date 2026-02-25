@@ -227,7 +227,7 @@ macro_rules! config_value {
 
             impl std::fmt::Display for [<$key:camel>] {
                 fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                    write!(f, "{:?}", self.0)
+                    write!(f, "{}", self.0)
                 }
             }
 
@@ -1053,6 +1053,7 @@ config_value!(CODEX_ENABLE_SKILLS, String, "true");
 config_value!(CODEX_SKIP_GIT_CHECK, String, "false");
 config_value!(CHATGPT_CODEX_REASONING_EFFORT, String, "medium");
 
+config_value!(GOOSE_CLI_PROMPT, String, "🪿");
 config_value!(GOOSE_SEARCH_PATHS, Vec<String>);
 config_value!(GOOSE_MODE, GooseMode);
 config_value!(GOOSE_PROVIDER, String);

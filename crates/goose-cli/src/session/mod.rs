@@ -1290,6 +1290,7 @@ impl CliSession {
             emit_stream_event(&StreamEvent::Complete { total_tokens });
         } else {
             println!();
+            let _ = std::io::stdout().flush();
         }
 
         Ok(())
