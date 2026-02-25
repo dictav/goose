@@ -399,7 +399,10 @@ fn parse_plan_command(input: String) -> Option<InputResult> {
 }
 
 fn get_input_prompt_string() -> String {
-    let goose = "🪿";
+    let goose = Config::global()
+        .get_goose_cli_prompt()
+        .map(|p| p.to_string())
+        .unwrap_or_else(|_| "🪿".to_string());
     if cfg!(target_os = "windows") {
         format!("{goose} ")
     } else {
@@ -693,17 +696,12 @@ mod tests {
 
     #[test]
     fn test_get_input_prompt_string() {
+        // Test custom prompt
+        std::env::set_var("GOOSE_CLI_PROMPT", ">>");
         let prompt = get_input_prompt_string();
-
-        // Prompt should always end with a space
+        assert!(prompt.contains(">>"));
+        assert!(!prompt.contains('\"'));
         assert!(prompt.ends_with(' '));
-
-        // Prompt should contain the goose emoji
-        assert!(prompt.contains("🪿"));
-
-        #[cfg(target_os = "windows")]
-        {
-            assert_eq!(prompt, "🪿 ");
-        }
+        std::env::remove_var("GOOSE_CLI_PROMPT");
     }
 }
