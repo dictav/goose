@@ -44,25 +44,13 @@ pub fn format_messages(messages: &[Message]) -> Vec<Value> {
         })
         .collect();
 
-    let last_assistant_idx = filtered
-        .iter()
-        .enumerate()
-        .filter(|(_, m)| m.role != Role::User)
-        .map(|(i, _)| i)
-        .next_back();
-
     filtered
         .iter()
-        .enumerate()
-        .map(|(idx, message)| {
+        .map(|message| {
             let role = if message.role == Role::User {
                 "user"
             } else {
                 "model"
-            };
-            let include_signature = match last_assistant_idx {
-                Some(last_idx) => idx >= last_idx,
-                None => false,
             };
             let mut parts = Vec::new();
             for message_content in message.content.iter() {
@@ -90,13 +78,11 @@ pub fn format_messages(messages: &[Message]) -> Vec<Value> {
                             let mut part = Map::new();
                             part.insert("functionCall".to_string(), json!(function_call_part));
 
-                            if include_signature {
-                                if let Some(signature) = get_thought_signature(&request.metadata) {
-                                    part.insert(
-                                        THOUGHT_SIGNATURE_KEY.to_string(),
-                                        json!(signature),
-                                    );
-                                }
+                            if let Some(signature) = get_thought_signature(&request.metadata) {
+                                part.insert(
+                                    THOUGHT_SIGNATURE_KEY.to_string(),
+                                    json!(signature),
+                                );
                             }
 
                             parts.push(json!(part));
@@ -144,13 +130,11 @@ pub fn format_messages(messages: &[Message]) -> Vec<Value> {
                             function_response
                                 .insert("response".to_string(), json!({"content": {"text": text}}));
                             part.insert("functionResponse".to_string(), json!(function_response));
-                            if include_signature {
-                                if let Some(signature) = get_thought_signature(&response.metadata) {
-                                    part.insert(
-                                        THOUGHT_SIGNATURE_KEY.to_string(),
-                                        json!(signature),
-                                    );
-                                }
+                            if let Some(signature) = get_thought_signature(&response.metadata) {
+                                part.insert(
+                                    THOUGHT_SIGNATURE_KEY.to_string(),
+                                    json!(signature),
+                                );
                             }
                             parts.push(json!(part));
                         }
@@ -163,13 +147,11 @@ pub fn format_messages(messages: &[Message]) -> Vec<Value> {
                                 json!({"content": {"text": format!("Error: {}", e)}}),
                             );
                             part.insert("functionResponse".to_string(), json!(function_response));
-                            if include_signature {
-                                if let Some(signature) = get_thought_signature(&response.metadata) {
-                                    part.insert(
-                                        THOUGHT_SIGNATURE_KEY.to_string(),
-                                        json!(signature),
-                                    );
-                                }
+                            if let Some(signature) = get_thought_signature(&response.metadata) {
+                                part.insert(
+                                    THOUGHT_SIGNATURE_KEY.to_string(),
+                                    json!(signature),
+                                );
                             }
                             parts.push(json!(part));
                         }
@@ -177,9 +159,7 @@ pub fn format_messages(messages: &[Message]) -> Vec<Value> {
                     MessageContent::Thinking(thinking) => {
                         let mut part = Map::new();
                         part.insert("text".to_string(), json!(thinking.thinking));
-                        if include_signature {
-                            part.insert("thoughtSignature".to_string(), json!(thinking.signature));
-                        }
+                        part.insert("thoughtSignature".to_string(), json!(thinking.signature));
                         parts.push(json!(part));
                     }
                     MessageContent::Image(image) => {
@@ -1021,12 +1001,10 @@ mod tests {
         let second_assistant =
             Message::assistant().with_thinking("More thinking".to_string(), "sig_456".to_string());
         let google_multi = format_messages(&[native, tool_response, second_assistant]);
-        assert!(google_multi[0]["parts"][0]
-            .get("thoughtSignature")
-            .is_none());
-        assert!(google_multi[1]["parts"][0]
-            .get("thoughtSignature")
-            .is_none());
+        // Previously we expected these to be None for "cleanliness", but for Vertex AI
+        // it is safer and sometimes required to keep them if they exist in the history.
+        assert_eq!(google_multi[0]["parts"][0]["thoughtSignature"], SIG);
+        assert_eq!(google_multi[1]["parts"][0]["thoughtSignature"], SIG);
         assert_eq!(google_multi[2]["parts"][0]["thoughtSignature"], "sig_456");
 
         // Text-only response WITH signature but WITHOUT function calls should be regular text
