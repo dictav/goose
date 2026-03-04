@@ -754,12 +754,12 @@ pub async fn configure_provider_dialog() -> anyhow::Result<bool> {
         }
     };
 
-    if model.to_lowercase().starts_with("gemini-3") {
-        let thinking_level: &str = cliclack::select("Select thinking level for Gemini 3:")
+    if goose::providers::formats::google::supports_thinking(&model) {
+        let thinking_level: &str = cliclack::select("Select thinking level for Gemini:")
             .item("low", "Low - Better latency, lighter reasoning", "")
             .item("high", "High - Deeper reasoning, higher latency", "")
             .interact()?;
-        config.set_gemini3_thinking_level(thinking_level)?;
+        config.set_gemini_thinking_level(thinking_level)?;
     }
 
     if model.to_lowercase().starts_with("claude-") {

@@ -42,6 +42,11 @@ function supportsAdaptiveThinking(name: string): boolean {
   return lower.includes('claude-opus-4-6') || lower.includes('claude-sonnet-4-6');
 }
 
+function supportsGeminiThinking(name: string): boolean {
+  const lower = name.toLowerCase();
+  return lower.startsWith('gemini-3') || lower.startsWith('gemini-2.0');
+}
+
 const PREFERRED_MODEL_PATTERNS = [
   /claude-sonnet-4/i,
   /claude-4/i,
@@ -127,7 +132,7 @@ export const SwitchModelModal = ({
   const [claudeThinkingBudget, setClaudeThinkingBudget] = useState<string>('16000');
 
   const modelName = usePredefinedModels ? selectedPredefinedModel?.name : model;
-  const isGemini3Model = modelName?.toLowerCase().startsWith('gemini-3') ?? false;
+  const isGeminiThinkingModel = modelName ? supportsGeminiThinking(modelName) : false;
   const showClaudeThinking = isClaudeModel(modelName);
   const modelSupportsAdaptive = modelName ? supportsAdaptiveThinking(modelName) : false;
 
@@ -211,7 +216,7 @@ export const SwitchModelModal = ({
         } as Model;
       }
 
-      if (isGemini3Model) {
+      if (isGeminiThinkingModel) {
         modelObj = {
           ...modelObj,
           request_params: { ...modelObj.request_params, thinking_level: thinkingLevel },
@@ -569,11 +574,11 @@ export const SwitchModelModal = ({
                 <div className="text-red-500 text-sm mt-1">{validationErrors.model}</div>
               )}
 
-              {isGemini3Model && (
+              {isGeminiThinkingModel && (
                 <div className="mt-2">
                   <label className="text-sm text-textSubtle mb-1 block">
                     Thinking Level
-                    <span className="text-xs text-textMuted ml-2">(Gemini 3 models only)</span>
+                    <span className="text-xs text-textMuted ml-2">(Gemini models only)</span>
                   </label>
                   <Select
                     options={THINKING_LEVEL_OPTIONS}
@@ -723,11 +728,11 @@ export const SwitchModelModal = ({
                     </div>
                   )}
 
-                  {isGemini3Model && (
+                  {isGeminiThinkingModel && (
                     <div className="mt-2">
                       <label className="text-sm text-textSubtle mb-1 block">
                         Thinking Level
-                        <span className="text-xs text-textMuted ml-2">(Gemini 3 models only)</span>
+                        <span className="text-xs text-textMuted ml-2">(Gemini models only)</span>
                       </label>
                       <Select
                         options={THINKING_LEVEL_OPTIONS}

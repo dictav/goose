@@ -45,7 +45,8 @@ These variables are needed when using custom endpoints, enterprise deployments, 
 | `GOOSE_PROVIDER__TYPE` | The specific type/implementation of the provider | [See available providers](/docs/getting-started/providers#available-providers) | Derived from GOOSE_PROVIDER |
 | `GOOSE_PROVIDER__HOST` | Custom API endpoint for the provider | URL (e.g., "https://api.openai.com") | Provider-specific default |
 | `GOOSE_PROVIDER__API_KEY` | Authentication key for the provider | API key string | None |
-| `GEMINI3_THINKING_LEVEL` | Sets the [thinking level](/docs/getting-started/providers#gemini-3-thinking-levels) for Gemini 3 models globally | `low`, `high` | `low` |
+| `GEMINI_THINKING_LEVEL` | Sets the [thinking level](/docs/getting-started/providers#gemini-thinking-levels) for Gemini models globally (Gemini 2.0 and 3) | `low`, `high` | `low` |
+| `GEMINI3_THINKING_LEVEL` | (Legacy) Sets the thinking level for Gemini 3 models globally | `low`, `high` | `low` |
 
 **Examples**
 
@@ -118,10 +119,10 @@ export GOOSE_PREDEFINED_MODELS='[
   }
 ]'
 
-# Gemini 3 with high thinking level
+# Gemini with high thinking level
 export GOOSE_PREDEFINED_MODELS='[
   {
-    "name": "gemini-3-pro",
+    "name": "gemini-2.0-flash",
     "provider": "google",
     "request_params": {"thinking_level": "high"}
   }

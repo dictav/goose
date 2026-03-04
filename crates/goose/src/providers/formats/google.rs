@@ -517,17 +517,23 @@ struct GoogleRequest<'a> {
     generation_config: Option<GenerationConfig>,
 }
 
+pub fn supports_thinking(model_name: &str) -> bool {
+    let lower = model_name.to_lowercase();
+    lower.starts_with("gemini-3") || lower.starts_with("gemini-2.0")
+}
+
 fn get_thinking_config(model_config: &ModelConfig) -> Option<ThinkingConfig> {
-    if !model_config
-        .model_name
-        .to_lowercase()
-        .starts_with("gemini-3")
-    {
+    if !supports_thinking(&model_config.model_name) {
         return None;
     }
 
     let thinking_level_str = model_config
-        .get_config_param::<String>("thinking_level", "GEMINI3_THINKING_LEVEL")
+        .get_config_param::<String>("thinking_level", "GEMINI_THINKING_LEVEL")
+        .or_else(|| {
+            crate::config::Config::global()
+                .get_param::<String>("GEMINI3_THINKING_LEVEL")
+                .ok()
+        })
         .map(|s| s.to_lowercase())
         .unwrap_or_else(|| "low".to_string());
 
@@ -1321,5 +1327,33 @@ data: [DONE]"#;
         let config = ModelConfig::new("gpt-4o").unwrap();
         let result = get_thinking_config(&config);
         assert!(result.is_none());
+
+        // Test 4: Gemini 2.0 model supports thinking
+        let config = ModelConfig::new("gemini-2.0-flash").unwrap();
+        let result = get_thinking_config(&config);
+        assert!(result.is_some());
+
+        // Test 5: Gemini 2.0 with custom thinking level via GEMINI_THINKING_LEVEL
+        let _guard = env_lock::lock_env([("GEMINI_THINKING_LEVEL", Some("high"))]);
+        let config = ModelConfig::new("gemini-2.0-flash").unwrap();
+        let result = get_thinking_config(&config);
+        assert!(result.is_some());
+        assert!(matches!(
+            result.unwrap().thinking_level,
+            ThinkingLevel::High
+        ));
+
+        // Test 6: Fallback to GEMINI3_THINKING_LEVEL
+        let _guard = env_lock::lock_env([
+            ("GEMINI_THINKING_LEVEL", None::<&str>),
+            ("GEMINI3_THINKING_LEVEL", Some("high")),
+        ]);
+        let config = ModelConfig::new("gemini-2.0-flash").unwrap();
+        let result = get_thinking_config(&config);
+        assert!(result.is_some());
+        assert!(matches!(
+            result.unwrap().thinking_level,
+            ThinkingLevel::High
+        ));
     }
 }
