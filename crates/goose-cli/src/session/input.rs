@@ -770,6 +770,7 @@ mod tests {
 
         // Test /editfoo is not a valid command
         assert!(handle_slash_command("/editfoo").is_none());
+    }
 
     #[test]
     fn test_get_input_prompt_string() {

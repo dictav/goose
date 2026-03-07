@@ -460,6 +460,33 @@ async fn run_command(
     login_path: Option<&str>,
 ) -> Result<ExecutionOutput, String> {
     let mut command = build_shell_command(command_line, working_dir, login_path);
+    if let Some(path) = working_dir {
+        command.current_dir(path);
+    }
+
+    #[cfg(not(windows))]
+    {
+        let inherited_path = std::env::var("PATH").unwrap_or_default();
+
+        // Heuristic to decide if we should use the inherited PATH or resolve from a login shell.
+        // We trust the inherited PATH if it contains user-specific directories or common package manager paths.
+        // GUI apps on macOS typically have a very minimal PATH like "/usr/bin:/bin:/usr/sbin:/sbin".
+        let is_minimal = inherited_path.is_empty()
+            || (inherited_path.split(':').count() <= 5
+                && !inherited_path.contains("/Users/")
+                && !inherited_path.contains("/home/")
+                && !inherited_path.contains("/opt/homebrew/bin"));
+
+        let final_path = if !is_minimal {
+            inherited_path.clone()
+        } else {
+            login_path
+                .map(|p| p.to_string())
+                .unwrap_or_else(|| inherited_path.clone())
+        };
+
+        command.env("PATH", final_path);
+    }
 
     command.stdout(Stdio::piped());
     command.stderr(Stdio::piped());
