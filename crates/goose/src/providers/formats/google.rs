@@ -509,6 +509,7 @@ struct GenerationConfig {
 #[serde(rename_all = "lowercase")]
 enum ThinkingLevel {
     Low,
+    Medium,
     High,
 }
 
@@ -549,6 +550,7 @@ fn get_thinking_config(model_config: &ModelConfig) -> Option<ThinkingConfig> {
 
         let thinking_level = match thinking_level_str.as_str() {
             "high" => ThinkingLevel::High,
+            "medium" => ThinkingLevel::Medium,
             "low" => ThinkingLevel::Low,
             invalid => {
                 tracing::warn!(
@@ -1431,5 +1433,16 @@ data: [DONE]"#;
         let config = ModelConfig::new("gpt-4o").unwrap();
         let result = get_thinking_config(&config);
         assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_get_thinking_config_medium() {
+        use crate::model::ModelConfig;
+        let mut config = ModelConfig::new("gemini-3-pro").unwrap();
+        config.request_params.insert("thinking_level".to_string(), json!("medium"));
+        let result = get_thinking_config(&config);
+        assert!(result.is_some());
+        let thinking_config = result.unwrap();
+        assert!(matches!(thinking_config.thinking_level, ThinkingLevel::Medium));
     }
 }

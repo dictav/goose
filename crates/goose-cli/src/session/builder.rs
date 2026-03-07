@@ -654,7 +654,7 @@ pub async fn build_session(session_config: SessionBuilderConfig) -> CliSession {
 
     let new_provider = match create(
         &resolved.provider_name,
-        resolved.model_config,
+        resolved.model_config.clone(),
         extensions_for_provider.clone(),
     )
     .await
@@ -740,11 +740,27 @@ pub async fn build_session(session_config: SessionBuilderConfig) -> CliSession {
     configure_session_prompts(&session, config, &session_config, &session_id).await;
 
     if !session_config.quiet {
+        let thinking_level = if resolved.model_name.to_lowercase().starts_with("gemini-3") {
+            let level = resolved
+                .model_config
+                .get_config_param::<String>("thinking_level", "GEMINI3_THINKING_LEVEL")
+                .map(|s| s.to_lowercase())
+                .unwrap_or_else(|| "low".to_string());
+
+            match level.as_str() {
+                "low" | "medium" | "high" => Some(level.to_uppercase()),
+                _ => Some("LOW".to_string()),
+            }
+        } else {
+            None
+        };
+
         output::display_session_info(
             session_config.resume,
             &resolved.provider_name,
             &resolved.model_name,
             &Some(session_id),
+            thinking_level,
         );
     }
     session

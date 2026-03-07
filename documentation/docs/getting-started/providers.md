@@ -1256,6 +1256,7 @@ Beyond single-model setups, goose supports [multi-model configurations](/docs/gu
 
 Gemini 3 models support configurable thinking levels to balance response latency and reasoning depth:
 - **Low** (default) - Faster responses, lighter reasoning
+- **Medium** - Balanced reasoning and speed
 - **High** - Deeper reasoning, higher latency
 
 :::tip

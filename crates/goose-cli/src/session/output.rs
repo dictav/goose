@@ -1295,6 +1295,7 @@ pub fn display_session_info(
     provider: &str,
     model: &str,
     session_id: &Option<String>,
+    thinking_level: Option<String>,
 ) {
     set_terminal_title();
 
@@ -1314,8 +1315,7 @@ pub fn display_session_info(
         .unwrap_or_else(|| "unknown".to_string());
 
     // ASCII art goose with session info on the right
-    println!();
-    println!(
+    let mut info_line = format!(
         "  {}  {} {} {} {} {}",
         style("  __( O)>").white(),
         style("●").green(),
@@ -1324,6 +1324,13 @@ pub fn display_session_info(
         style(provider).dim(),
         style(&model_display).cyan(),
     );
+
+    if let Some(level) = thinking_level {
+        info_line.push_str(&format!(" {}", style(level).yellow()));
+    }
+
+    println!();
+    println!("{}", info_line);
 
     if let Some(id) = session_id {
         println!(
